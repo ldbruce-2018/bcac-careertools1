@@ -2462,7 +2462,7 @@ $ charlson_quan2011         &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 </section>
 <section id="export-reference-tables-to-parquet" class="level2">
 <h2 class="anchored" data-anchor-id="export-reference-tables-to-parquet">5. Export Reference Tables to Parquet</h2>
-<p>Because the medicalcoder package exposes maintained clinical classification and ICD reference resources directly, they can be exported to Parquet format for use in downstream analytical workflows, data warehouses, Spark environments, SQL platforms, or cross-language pipelines.</p>
+<p>The medicalcoder package reference tables can be exported to Parquet format for use in R, SAS, Python, etc.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>export_reference_tables <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -2484,7 +2484,7 @@ $ charlson_quan2011         &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 </section>
 <section id="patient-risk-scoring-using-the-medicalcoder-package" class="level2">
 <h2 class="anchored" data-anchor-id="patient-risk-scoring-using-the-medicalcoder-package">6. Patient Risk Scoring Using the medicalcoder Package</h2>
-<p>The medicalcoder package implements the Quan et al. (2011) Charlson Comorbidity Index methodology directly, including the underlying condition mappings, hierarchy rules, and score calculations. Patient-level comorbidity scores can be generated from diagnosis data using the package.</p>
+<p>We use the commorbidiites() function to score patients using condition mappings &amp; hierarchy rules, inputting ICD-10-CM codes and specifying <strong>method = “charlson_quan2011”</strong>.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>score_patients <span class="ot">&lt;-</span> <span class="cf">function</span>(patient_data) {</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
