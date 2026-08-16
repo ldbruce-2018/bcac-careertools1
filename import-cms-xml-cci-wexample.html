@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Programmatic CMS XML Extraction &amp; Charlson Comorbidity Engine (Quan 2011)</title>
+<title>Charlson Comorbidity Scoring Using the medicalcoder Package</title>
 <style>
 
 code{white-space: pre-wrap;}
@@ -2212,14 +2212,11 @@ vertical-align: -.125em;
   <ul class="collapse">
   <li><a href="#academic-reference" id="toc-academic-reference" class="nav-link" data-scroll-target="#academic-reference">Academic Reference</a></li>
   </ul></li>
-  <li><a href="#xml-file-download-and-extraction" id="toc-xml-file-download-and-extraction" class="nav-link" data-scroll-target="#xml-file-download-and-extraction">2. XML File Download and Extraction</a></li>
-  <li><a href="#flatten-xml-leaf-nodes-into-data-frame" id="toc-flatten-xml-leaf-nodes-into-data-frame" class="nav-link" data-scroll-target="#flatten-xml-leaf-nodes-into-data-frame">3. Flatten XML Leaf Nodes Into Data Frame</a></li>
-  <li><a href="#map-to-quan-2011-comorbidity-matrix" id="toc-map-to-quan-2011-comorbidity-matrix" class="nav-link" data-scroll-target="#map-to-quan-2011-comorbidity-matrix">4. Map to Quan 2011 Comorbidity Matrix</a>
-  <ul class="collapse">
-  <li><a href="#quan-2011-protocol-metric-parameters" id="toc-quan-2011-protocol-metric-parameters" class="nav-link" data-scroll-target="#quan-2011-protocol-metric-parameters">Quan 2011 Protocol Metric Parameters</a></li>
-  </ul></li>
-  <li><a href="#extract-charlson-codes-to-parquet" id="toc-extract-charlson-codes-to-parquet" class="nav-link" data-scroll-target="#extract-charlson-codes-to-parquet">5. Extract Charlson Codes to Parquet</a></li>
-  <li><a href="#patient-risk-scoring-engine-hierarchical-evaluation" id="toc-patient-risk-scoring-engine-hierarchical-evaluation" class="nav-link" data-scroll-target="#patient-risk-scoring-engine-hierarchical-evaluation">6. Patient Risk Scoring Engine &amp; Hierarchical Evaluation</a></li>
+  <li><a href="#load-comorbidity-reference-resources" id="toc-load-comorbidity-reference-resources" class="nav-link" data-scroll-target="#load-comorbidity-reference-resources">2. Load Comorbidity Reference Resources</a></li>
+  <li><a href="#explore-available-reference-tables" id="toc-explore-available-reference-tables" class="nav-link" data-scroll-target="#explore-available-reference-tables">3. Explore Available Reference Tables</a></li>
+  <li><a href="#map-to-quan-2011-comorbidity-matrix" id="toc-map-to-quan-2011-comorbidity-matrix" class="nav-link" data-scroll-target="#map-to-quan-2011-comorbidity-matrix">4. Map to Quan 2011 Comorbidity Matrix</a></li>
+  <li><a href="#export-reference-tables-to-parquet" id="toc-export-reference-tables-to-parquet" class="nav-link" data-scroll-target="#export-reference-tables-to-parquet">5. Export Reference Tables to Parquet</a></li>
+  <li><a href="#patient-risk-scoring-using-the-medicalcoder-package" id="toc-patient-risk-scoring-using-the-medicalcoder-package" class="nav-link" data-scroll-target="#patient-risk-scoring-using-the-medicalcoder-package">6. Patient Risk Scoring Using the medicalcoder Package</a></li>
   <li><a href="#synthetic-cohort-demonstration-walkthrough" id="toc-synthetic-cohort-demonstration-walkthrough" class="nav-link" data-scroll-target="#synthetic-cohort-demonstration-walkthrough">7. Synthetic Cohort Demonstration &amp; Walkthrough</a></li>
   </ul>
 </nav>
@@ -2230,7 +2227,7 @@ vertical-align: -.125em;
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Programmatic CMS XML Extraction &amp; Charlson Comorbidity Engine (Quan 2011)</h1>
+<h1 class="title">Charlson Comorbidity Scoring Using the medicalcoder Package</h1>
 </div>
 
 
@@ -2249,7 +2246,8 @@ vertical-align: -.125em;
 
 <section id="study-citation-analytical-framework" class="level2">
 <h2 class="anchored" data-anchor-id="study-citation-analytical-framework">1. Study Citation &amp; Analytical Framework</h2>
-<p>This analytical framework directly adapts the updated and validated weight metrics published by Quan et al. to modern automated EHR reporting workflows.</p>
+<p>This analytical framework demonstrates how to calculate Charlson Comorbidity Index (CCI) scores using the open-source medicalcoder package. The package implements the updated and validated Quan et al. (2011) ICD-10 comorbidity definitions and scoring methodology commonly used in administrative claims and EHR analytics.</p>
+<p>This example uses the open-source medicalcoder package as the implementation source for Quan et al. (2011) Charlson comorbidity scoring. The package includes maintained ICD reference tables together with Charlson and Elixhauser comorbidity resources. The reference tables may also be exported and used in SAS, Python, SQL, Spark, or other analytical environments.</p>
 <section id="academic-reference" class="level3">
 <h3 class="anchored" data-anchor-id="academic-reference">Academic Reference</h3>
 <blockquote class="blockquote">
@@ -2257,260 +2255,423 @@ vertical-align: -.125em;
 </blockquote>
 </section>
 </section>
-<section id="xml-file-download-and-extraction" class="level2">
-<h2 class="anchored" data-anchor-id="xml-file-download-and-extraction">2. XML File Download and Extraction</h2>
-<p>This step downloads the archive directly from the CMS server to the local workspace directory, unzips it, and locates the raw XML file containing the tabular codes.</p>
+<section id="load-comorbidity-reference-resources" class="level2">
+<h2 class="anchored" data-anchor-id="load-comorbidity-reference-resources">2. Load Comorbidity Reference Resources</h2>
+<p>Rather than downloading and parsing external source files, this workflow loads maintained clinical classification and ICD reference resources distributed with the medicalcoder package. These resources include Charlson Comorbidity Index definitions, Elixhauser comorbidities, Pediatric Complex Chronic Conditions (PCCC), and comprehensive ICD reference tables.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>cms_url <span class="ot">&lt;-</span> <span class="st">&quot;https://cms.gov&quot;</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>zip_dest <span class="ot">&lt;-</span> <span class="st">&quot;cms_icd10_2026.zip&quot;</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>extract_dir <span class="ot">&lt;-</span> <span class="st">&quot;cms_extracted&quot;</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">file.exists</span>(zip_dest)) {</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">download.file</span>(cms_url, <span class="at">destfile =</span> zip_dest, <span class="at">mode =</span> <span class="st">&quot;wb&quot;</span>)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">dir.exists</span>(extract_dir)) <span class="fu">dir.create</span>(extract_dir)</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">unzip</span>(zip_dest, <span class="at">exdir =</span> extract_dir)</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>all_files <span class="ot">&lt;-</span> <span class="fu">list.files</span>(extract_dir, <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">full.names =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>xml_files <span class="ot">&lt;-</span> all_files[stringr<span class="sc">::</span><span class="fu">str_ends</span>(all_files, <span class="st">&quot;(?i)</span><span class="sc">\\</span><span class="st">.xml&quot;</span>)]</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>xml_file_path <span class="ot">&lt;-</span> xml_files[stringr<span class="sc">::</span><span class="fu">str_detect</span>(xml_files, <span class="st">&quot;(?i)tabular&quot;</span>)]</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">length</span>(xml_file_path) <span class="sc">==</span> <span class="dv">0</span>) {</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stop</span>(<span class="st">&quot;Could not find the tabular XML file. Current extracted folder contains:</span><span class="sc">\n</span><span class="st">&quot;</span>, </span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>       <span class="fu">paste</span>(all_files, <span class="at">collapse =</span> <span class="st">&quot;</span><span class="sc">\n</span><span class="st">&quot;</span>))</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>df_charlson_index_scores <span class="ot">&lt;-</span> <span class="fu">get_charlson_index_scores</span>()</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>df_charlson_codes <span class="ot">&lt;-</span> <span class="fu">get_charlson_codes</span>()</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>df_icd_codes <span class="ot">&lt;-</span> <span class="fu">get_icd_codes</span>()</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>df_pccc_codes <span class="ot">&lt;-</span> <span class="fu">get_pccc_codes</span>()</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>df_elixhauser_codes <span class="ot">&lt;-</span> <span class="fu">get_elixhauser_codes</span>()</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>dplyr<span class="sc">::</span><span class="fu">glimpse</span>(df_charlson_codes)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 9,248
+Columns: 13
+$ icdv                      &lt;int&gt; 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,…
+$ dx                        &lt;int&gt; 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
+$ full_code                 &lt;chr&gt; &quot;38.48&quot;, &quot;003.1&quot;, &quot;007.2&quot;, &quot;007.4&quot;, &quot;010&quot;, &quot;…
+$ code                      &lt;chr&gt; &quot;3848&quot;, &quot;0031&quot;, &quot;0072&quot;, &quot;0074&quot;, &quot;010&quot;, &quot;0100…
+$ condition                 &lt;chr&gt; &quot;pvd&quot;, &quot;aids&quot;, &quot;aids&quot;, &quot;aids&quot;, &quot;aids&quot;, &quot;aids…
+$ charlson_beyrer2021       &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ charlson_cdmf2019         &lt;int&gt; 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
+$ charlson_deyo1992         &lt;int&gt; 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ charlson_ludvigsson2021   &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ charlson_mimicivcode      &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ charlson_quan2005         &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ charlson_sundararajan2004 &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ charlson_quan2011         &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</code></pre>
+</div>
 </div>
 </section>
-<section id="flatten-xml-leaf-nodes-into-data-frame" class="level2">
-<h2 class="anchored" data-anchor-id="flatten-xml-leaf-nodes-into-data-frame">3. Flatten XML Leaf Nodes Into Data Frame</h2>
-<p>This section parses the nested XML tree nodes and pulls out absolute diagnostic terminal rows into a flat, readable data structure.</p>
+<section id="explore-available-reference-tables" class="level2">
+<h2 class="anchored" data-anchor-id="explore-available-reference-tables">3. Explore Available Reference Tables</h2>
+<p>The medicalcoder package includes reference resources for multiple comorbidity clinical classification and risk adjustment frameworks.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>raw_xml <span class="ot">&lt;-</span> xml2<span class="sc">::</span><span class="fu">read_xml</span>(xml_file_path) </span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>diag_nodes <span class="ot">&lt;-</span> xml2<span class="sc">::</span><span class="fu">xml_find_all</span>(raw_xml, <span class="st">&quot;.//diag&quot;</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>all_cms_codes <span class="ot">&lt;-</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">dx_code          =</span> xml2<span class="sc">::</span><span class="fu">xml_text</span>(xml2<span class="sc">::</span><span class="fu">xml_find_first</span>(diag_nodes, <span class="st">&quot;./name&quot;</span>)),</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">code_description =</span> xml2<span class="sc">::</span><span class="fu">xml_text</span>(xml2<span class="sc">::</span><span class="fu">xml_find_first</span>(diag_nodes, <span class="st">&quot;./desc&quot;</span>)),</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">code_type        =</span> <span class="st">&quot;ICD-10-CM&quot;</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span> </span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(dx_code)) <span class="sc">|&gt;</span> </span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">clean_match_code =</span> stringr<span class="sc">::</span><span class="fu">str_replace_all</span>(dx_code, <span class="st">&quot;</span><span class="sc">\\</span><span class="st">.&quot;</span>, <span class="st">&quot;&quot;</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>                  stringr<span class="sc">::</span><span class="fu">str_trim</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>                  <span class="fu">toupper</span>())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-</section>
-<section id="map-to-quan-2011-comorbidity-matrix" class="level2">
-<h2 class="anchored" data-anchor-id="map-to-quan-2011-comorbidity-matrix">4. Map to Quan 2011 Comorbidity Matrix</h2>
-<p>We define the corresponding regular expression patterns and target index weights for each of the structural comorbidities.</p>
-<section id="quan-2011-protocol-metric-parameters" class="level3">
-<h3 class="anchored" data-anchor-id="quan-2011-protocol-metric-parameters">Quan 2011 Protocol Metric Parameters</h3>
-<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>reference_tables <span class="ot">&lt;-</span> tibble<span class="sc">::</span><span class="fu">tribble</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="sc">~</span>Reference_Table, <span class="sc">~</span>Rows, <span class="sc">~</span>Purpose,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;Charlson ICD Mappings&quot;</span>, <span class="fu">nrow</span>(df_charlson_codes), <span class="st">&quot;Charlson comorbidity definitions and ICD mappings&quot;</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;Charlson Index Scores&quot;</span>, <span class="fu">nrow</span>(df_charlson_index_scores), <span class="st">&quot;Quan et al. (2011) condition weights&quot;</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;Elixhauser Mappings&quot;</span>, <span class="fu">nrow</span>(df_elixhauser_codes), <span class="st">&quot;Elixhauser comorbidity definitions and ICD mappings&quot;</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;PCCC Mappings&quot;</span>, <span class="fu">nrow</span>(df_pccc_codes), <span class="st">&quot;Pediatric Complex Chronic Conditions classifications&quot;</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;ICD Reference Codes&quot;</span>, <span class="fu">nrow</span>(df_icd_codes), <span class="st">&quot;Comprehensive ICD code reference table&quot;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  reference_tables,</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">format =</span> <span class="st">&quot;markdown&quot;</span>,</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">caption =</span> <span class="st">&quot;Reference Tables Available in medicalcoder&quot;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
+<caption>Reference Tables Available in medicalcoder</caption>
+<colgroup>
+<col style="width: 26%">
+<col style="width: 8%">
+<col style="width: 64%">
+</colgroup>
 <thead>
 <tr class="header">
-<th style="text-align: left;">Comorbidity</th>
-<th style="text-align: right;">Assigned_Weight</th>
+<th style="text-align: left;">Reference_Table</th>
+<th style="text-align: right;">Rows</th>
+<th style="text-align: left;">Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">Myocardial infarction</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: left;">Charlson ICD Mappings</td>
+<td style="text-align: right;">9248</td>
+<td style="text-align: left;">Charlson comorbidity definitions and ICD mappings</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Congestive heart failure</td>
-<td style="text-align: right;">2</td>
+<td style="text-align: left;">Charlson Index Scores</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: left;">Quan et al. (2011) condition weights</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Peripheral vascular disease</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: left;">Elixhauser Mappings</td>
+<td style="text-align: right;">11294</td>
+<td style="text-align: left;">Elixhauser comorbidity definitions and ICD mappings</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">Cerebrovascular disease</td>
-<td style="text-align: right;">0</td>
+<td style="text-align: left;">PCCC Mappings</td>
+<td style="text-align: right;">8900</td>
+<td style="text-align: left;">Pediatric Complex Chronic Conditions classifications</td>
 </tr>
 <tr class="odd">
-<td style="text-align: left;">Dementia</td>
-<td style="text-align: right;">2</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Chronic pulmonary disease</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Rheumatic disease</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Peptic ulcer disease</td>
-<td style="text-align: right;">0</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Mild liver disease</td>
-<td style="text-align: right;">2</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Diabetes without chronic complication</td>
-<td style="text-align: right;">0</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Diabetes with chronic complication</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Hemiplegia or paraplegia</td>
-<td style="text-align: right;">2</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Renal disease</td>
-<td style="text-align: right;">1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Any malignancy incl lymphoma leukemia excl skin</td>
-<td style="text-align: right;">2</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Moderate or severe liver disease</td>
-<td style="text-align: right;">4</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Metastatic solid tumor</td>
-<td style="text-align: right;">6</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">AIDS/HIV</td>
-<td style="text-align: right;">4</td>
+<td style="text-align: left;">ICD Reference Codes</td>
+<td style="text-align: right;">330606</td>
+<td style="text-align: left;">Comprehensive ICD code reference table</td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
 </section>
-</section>
-<section id="extract-charlson-codes-to-parquet" class="level2">
-<h2 class="anchored" data-anchor-id="extract-charlson-codes-to-parquet">5. Extract Charlson Codes to Parquet</h2>
-<p>This section runs the regex string filtering algorithms and exports the base mapping crosswalk table directly to Parquet binary storage.</p>
+<section id="map-to-quan-2011-comorbidity-matrix" class="level2">
+<h2 class="anchored" data-anchor-id="map-to-quan-2011-comorbidity-matrix">4. Map to Quan 2011 Comorbidity Matrix</h2>
+<p>This section presents the Quan et al. (2011) comorbidity definitions and weights used in the package implementation.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>charlson_extracted <span class="ot">&lt;-</span> <span class="fu">names</span>(charlson_patterns) <span class="sc">|&gt;</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  purrr<span class="sc">::</span><span class="fu">map_dfr</span>(<span class="cf">function</span>(comorbidity_name) {</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    regex_str <span class="ot">&lt;-</span> charlson_patterns[[comorbidity_name]]</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    weight_val <span class="ot">&lt;-</span> quan_2011_weights[[comorbidity_name]]</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    all_cms_codes <span class="sc">|&gt;</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">filter</span>(stringr<span class="sc">::</span><span class="fu">str_detect</span>(clean_match_code, regex_str)) <span class="sc">|&gt;</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>      dplyr<span class="sc">::</span><span class="fu">transmute</span>(</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        <span class="at">dx_code          =</span> dx_code,</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="at">code_type        =</span> code_type,</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        <span class="at">code_description =</span> code_description,</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        <span class="at">comorbidity      =</span> comorbidity_name,</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">quan_weight      =</span> weight_val</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>      )</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  }) <span class="sc">|&gt;</span></span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">distinct</span>(dx_code, <span class="at">.keep_all =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>arrow<span class="sc">::</span><span class="fu">write_parquet</span>(charlson_extracted, <span class="st">&quot;charlson_quan2011_extracted_codes.parquet&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Quan et al. (2011) ICD-10-CM Definitions and Weights</caption>
+<colgroup>
+<col style="width: 20%">
+<col style="width: 6%">
+<col style="width: 73%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Comorbidity</th>
+<th style="text-align: right;">Assigned_Weight</th>
+<th style="text-align: left;">ICD10CM_Codes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Myocardial infarction</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">I21.x, I22.x, I25.2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Congestive heart failure</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">I09.9, I11.0, I13.0, I13.2, I25.5, I42.0, I42.5-I42.9, I43.x, I50.x, P29.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Peripheral vascular disease</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">I70.x, I71.x, I73.1, I73.8, I73.9, I77.1, I79.0, I79.2, K55.1, K55.8, K55.9, Z95.8, Z95.9</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Cerebrovascular disease</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">G45.x, G46.x, H34.0, I60.x-I69.x</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Dementia</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">F00.x-F03.x, F05.1, G30.x, G31.1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Chronic pulmonary disease</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">I27.8, I27.9, J40.x-J47.x, J60.x-J67.x, J68.4, J70.1, J70.3</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Rheumatic disease</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">M05.x, M06.x, M31.5, M32.x-M34.x, M35.1, M35.3, M36.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Peptic ulcer disease</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">K25.x-K28.x</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Mild liver disease</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">B18.x, K70.0-K70.3, K70.9, K71.3-K71.5, K71.7, K73.x, K74.x, K76.0, K76.2-K76.4, K76.8, K76.9, Z94.4</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Diabetes without chronic complication</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">E10.0, E10.1, E10.6, E10.8, E10.9, E11.0, E11.1, E11.6, E11.8, E11.9, E12.0, E12.1, E12.6, E12.8, E12.9, E13.0, E13.1, E13.6, E13.8, E13.9, E14.0, E14.1, E14.6, E14.8, E14.9</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Diabetes with chronic complication</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">E10.2-E10.5, E10.7, E11.2-E11.5, E11.7, E12.2-E12.5, E12.7, E13.2-E13.5, E13.7, E14.2-E14.5, E14.7</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Hemiplegia or paraplegia</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">G04.1, G11.4, G80.1, G80.2, G81.x, G82.x, G83.0-G83.4, G83.9</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Renal disease</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">I12.0, I13.1, N03.2-N03.7, N05.2-N05.7, N18.x, N19.x, N25.0, Z49.0-Z49.2, Z94.0, Z99.2</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Any malignancy incl lymphoma leukemia excl skin</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: left;">C00.x-C26.x, C30.x-C34.x, C37.x-C41.x, C43.x, C45.x-C58.x, C60.x-C76.x, C81.x-C85.x, C88.x, C90.x-C97.x</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Moderate or severe liver disease</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">I85.0, I85.9, I86.4, I98.2, K70.4, K71.1, K72.1, K72.9, K76.5, K76.6, K76.7</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Metastatic solid tumor</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: left;">C77.x-C80.x</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">AIDS/HIV</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">B20.x-B22.x, B24.x</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Definitely. In idiomatic R I’d compress it further:</p>
+</section>
+<section id="export-reference-tables-to-parquet" class="level2">
+<h2 class="anchored" data-anchor-id="export-reference-tables-to-parquet">5. Export Reference Tables to Parquet</h2>
+<p>Because the medicalcoder package exposes maintained clinical classification and ICD reference resources directly, they can be exported to Parquet format for use in downstream analytical workflows, data warehouses, Spark environments, SQL platforms, or cross-language pipelines.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>export_reference_tables <span class="ot">&lt;-</span> <span class="cf">function</span>() {</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">charlson_codes =</span> df_charlson_codes,</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">charlson_index_scores =</span> df_charlson_index_scores,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">elixhauser_codes =</span> df_elixhauser_codes,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">pccc_codes =</span> df_pccc_codes,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">icd_reference_codes =</span> df_icd_codes</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    purrr<span class="sc">::</span><span class="fu">iwalk</span>(</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>      \(x, y) arrow<span class="sc">::</span><span class="fu">write_parquet</span>(x, <span class="fu">paste0</span>(y, <span class="st">&quot;.parquet&quot;</span>))</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="fu">export_reference_tables</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
-<section id="patient-risk-scoring-engine-hierarchical-evaluation" class="level2">
-<h2 class="anchored" data-anchor-id="patient-risk-scoring-engine-hierarchical-evaluation">6. Patient Risk Scoring Engine &amp; Hierarchical Evaluation</h2>
-<p>This functional pipeline reads the Parquet mapping engine, ingests patient diagnosis records, and enforces the three mutual exclusivity hierarchy filters.</p>
+<section id="patient-risk-scoring-using-the-medicalcoder-package" class="level2">
+<h2 class="anchored" data-anchor-id="patient-risk-scoring-using-the-medicalcoder-package">6. Patient Risk Scoring Using the medicalcoder Package</h2>
+<p>The medicalcoder package implements the Quan et al. (2011) Charlson Comorbidity Index methodology directly, including the underlying condition mappings, hierarchy rules, and score calculations. Patient-level comorbidity scores can be generated from diagnosis data using the package.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>calculate_charlson_scores <span class="ot">&lt;-</span> <span class="cf">function</span>(patient_data, </span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">patient_id_col =</span> <span class="st">&quot;patient_id&quot;</span>, </span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">dx_code_col =</span> <span class="st">&quot;dx_code&quot;</span>,</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">parquet_path =</span> <span class="st">&quot;charlson_quan2011_extracted_codes.parquet&quot;</span>) {</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Read base map and generate short prefix matching columns</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  weight_map <span class="ot">&lt;-</span> arrow<span class="sc">::</span><span class="fu">read_parquet</span>(parquet_path) <span class="sc">|&gt;</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">prefix_3 =</span> stringr<span class="sc">::</span><span class="fu">str_sub</span>(dx_code, <span class="dv">1</span>, <span class="dv">3</span>)) <span class="sc">|&gt;</span> </span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(prefix_3, comorbidity, quan_weight) <span class="sc">|&gt;</span> </span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">distinct</span>()</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Clear formatting constraints symmetrically from the target inputs</span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  processed_patients <span class="ot">&lt;-</span> patient_data <span class="sc">|&gt;</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>      <span class="at">clean_dx =</span> stringr<span class="sc">::</span><span class="fu">str_replace_all</span>(<span class="sc">!!</span><span class="fu">sym</span>(dx_code_col), <span class="st">&quot;</span><span class="sc">\\</span><span class="st">.&quot;</span>, <span class="st">&quot;&quot;</span>) <span class="sc">|&gt;</span> stringr<span class="sc">::</span><span class="fu">str_trim</span>() <span class="sc">|&gt;</span> <span class="fu">toupper</span>(),</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>      <span class="at">prefix_3 =</span> stringr<span class="sc">::</span><span class="fu">str_sub</span>(clean_dx, <span class="dv">1</span>, <span class="dv">3</span>)</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Join using the standardized 3-character prefix keys</span></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  joined_data <span class="ot">&lt;-</span> processed_patients <span class="sc">|&gt;</span> </span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">left_join</span>(weight_map, <span class="at">by =</span> <span class="st">&quot;prefix_3&quot;</span>) <span class="sc">|&gt;</span> </span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(comorbidity)) <span class="sc">|&gt;</span> </span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">distinct</span>(<span class="sc">!!</span><span class="fu">sym</span>(patient_id_col), comorbidity, <span class="at">.keep_all =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Calculate risk metrics and evaluate hierarchy overrides</span></span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>  scored_patients <span class="ot">&lt;-</span> joined_data <span class="sc">|&gt;</span></span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">group_by</span>(<span class="sc">!!</span><span class="fu">sym</span>(patient_id_col)) <span class="sc">|&gt;</span></span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">has_diab_comp =</span> <span class="fu">any</span>(comorbidity <span class="sc">==</span> <span class="st">&quot;Diabetes with chronic complication&quot;</span>),</span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">drop_row =</span> comorbidity <span class="sc">==</span> <span class="st">&quot;Diabetes without chronic complication&quot;</span> <span class="sc">&amp;</span> has_diab_comp,</span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>      </span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>      <span class="at">has_sev_liver =</span> <span class="fu">any</span>(comorbidity <span class="sc">==</span> <span class="st">&quot;Moderate or severe liver disease&quot;</span>),</span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>      <span class="at">drop_row =</span> dplyr<span class="sc">::</span><span class="fu">if_else</span>(comorbidity <span class="sc">==</span> <span class="st">&quot;Mild liver disease&quot;</span> <span class="sc">&amp;</span> has_sev_liver, <span class="cn">TRUE</span>, drop_row),</span>
-<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>      </span>
-<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>      <span class="at">has_metastatic =</span> <span class="fu">any</span>(comorbidity <span class="sc">==</span> <span class="st">&quot;Metastatic solid tumor&quot;</span>),</span>
-<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>      <span class="at">drop_row =</span> dplyr<span class="sc">::</span><span class="fu">if_else</span>(comorbidity <span class="sc">==</span> <span class="st">&quot;Any malignancy incl lymphoma leukemia excl skin&quot;</span> <span class="sc">&amp;</span> has_metastatic, <span class="cn">TRUE</span>, drop_row)</span>
-<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
-<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">filter</span>(<span class="sc">!</span>drop_row) <span class="sc">|&gt;</span> </span>
-<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">summarise</span>(</span>
-<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>      <span class="at">comorbidities_present =</span> <span class="fu">paste</span>(<span class="fu">sort</span>(comorbidity), <span class="at">collapse =</span> <span class="st">&quot;; &quot;</span>),</span>
-<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>      <span class="at">total_charlson_score  =</span> <span class="fu">sum</span>(quan_weight),</span>
-<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>      <span class="at">.groups =</span> <span class="st">&quot;drop&quot;</span></span>
-<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>  all_distinct_ids <span class="ot">&lt;-</span> patient_data <span class="sc">|&gt;</span> </span>
-<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">!!</span><span class="fu">sym</span>(patient_id_col)) <span class="sc">|&gt;</span> </span>
-<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">distinct</span>()</span>
-<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>  final_output <span class="ot">&lt;-</span> all_distinct_ids <span class="sc">|&gt;</span></span>
-<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">left_join</span>(scored_patients, <span class="at">by =</span> patient_id_col) <span class="sc">|&gt;</span></span>
-<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
-<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>      <span class="at">comorbidities_present =</span> dplyr<span class="sc">::</span><span class="fu">coalesce</span>(comorbidities_present, <span class="st">&quot;None&quot;</span>),</span>
-<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>      <span class="at">total_charlson_score  =</span> dplyr<span class="sc">::</span><span class="fu">coalesce</span>(total_charlson_score, <span class="dv">0</span>)</span>
-<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(final_output)</span>
-<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>score_patients <span class="ot">&lt;-</span> <span class="cf">function</span>(patient_data) {</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  condition_labels <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">aidshiv =</span> <span class="st">&quot;AIDS/HIV&quot;</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">mal =</span> <span class="st">&quot;Any malignancy incl lymphoma leukemia excl skin&quot;</span>,</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">cebvd =</span> <span class="st">&quot;Cerebrovascular disease&quot;</span>,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">copd =</span> <span class="st">&quot;Chronic pulmonary disease&quot;</span>,</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">chf =</span> <span class="st">&quot;Congestive heart failure&quot;</span>,</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">dem =</span> <span class="st">&quot;Dementia&quot;</span>,</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">dmc =</span> <span class="st">&quot;Diabetes with chronic complication&quot;</span>,</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">dm =</span> <span class="st">&quot;Diabetes without chronic complication&quot;</span>,</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">hp =</span> <span class="st">&quot;Hemiplegia or paraplegia&quot;</span>,</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">mld =</span> <span class="st">&quot;Mild liver disease&quot;</span>,</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">msld =</span> <span class="st">&quot;Moderate or severe liver disease&quot;</span>,</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">mst =</span> <span class="st">&quot;Metastatic solid tumor&quot;</span>,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">mi =</span> <span class="st">&quot;Myocardial infarction&quot;</span>,</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">pud =</span> <span class="st">&quot;Peptic ulcer disease&quot;</span>,</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">pvd =</span> <span class="st">&quot;Peripheral vascular disease&quot;</span>,</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">rnd =</span> <span class="st">&quot;Renal disease&quot;</span>,</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">rhd =</span> <span class="st">&quot;Rheumatic disease&quot;</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  patient_data <span class="sc">|&gt;</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">dx =</span> <span class="dv">1</span>L) <span class="sc">|&gt;</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    medicalcoder<span class="sc">::</span><span class="fu">comorbidities</span>(</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>      <span class="at">icd.codes =</span> <span class="st">&quot;dx_code&quot;</span>,</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>      <span class="at">id.vars =</span> <span class="st">&quot;patient_id&quot;</span>,</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>      <span class="at">dx.var =</span> <span class="st">&quot;dx&quot;</span>,</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">method =</span> <span class="st">&quot;charlson_quan2011&quot;</span>,</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">flag.method =</span> <span class="st">&quot;current&quot;</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">rowwise</span>() <span class="sc">|&gt;</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>      <span class="at">comorbidities_present =</span> <span class="fu">paste</span>(condition_labels[<span class="fu">names</span>(condition_labels)[<span class="fu">c_across</span>(dplyr<span class="sc">::</span><span class="fu">all_of</span>(<span class="fu">names</span>(condition_labels))) <span class="sc">==</span> <span class="dv">1</span>]], <span class="at">collapse =</span> <span class="st">&quot;; &quot;</span>),</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>      <span class="at">comorbidities_present =</span> dplyr<span class="sc">::</span><span class="fu">if_else</span>(comorbidities_present <span class="sc">==</span> <span class="st">&quot;&quot;</span>, <span class="st">&quot;None&quot;</span>, comorbidities_present)</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">ungroup</span>() <span class="sc">|&gt;</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>    dplyr<span class="sc">::</span><span class="fu">transmute</span>(</span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>      patient_id,</span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>      comorbidities_present,</span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>      <span class="at">total_charlson_score =</span> cci</span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="synthetic-cohort-demonstration-walkthrough" class="level2">
 <h2 class="anchored" data-anchor-id="synthetic-cohort-demonstration-walkthrough">7. Synthetic Cohort Demonstration &amp; Walkthrough</h2>
-<p>We execute a diagnostic run on a mock panel of three complex clinical cases to demonstrate the scoring engine’s verification steps.</p>
+<p>The examples below were constructed to test specific Quan et al. (2011) hierarchy rules, exclusions, and multimorbidity scenarios. Each scenario is evaluated using the package implementation and compared against the expected outcomes.</p>
+<p><strong>Test Coverage</strong></p>
+<ul>
+<li><strong>Diabetes hierarchy</strong>
+<ul>
+<li>Diabetes with chronic complication supersedes Diabetes without chronic complication</li>
+</ul></li>
+<li><strong>Liver hierarchy</strong>
+<ul>
+<li>Moderate or severe liver disease supersedes Mild liver disease</li>
+</ul></li>
+<li><strong>Malignancy hierarchy</strong>
+<ul>
+<li>Metastatic solid tumor supersedes Any malignancy incl lymphoma leukemia excl skin</li>
+</ul></li>
+<li><strong>Explicit exclusion testing</strong>
+<ul>
+<li>I85.10</li>
+<li>K76.1</li>
+<li>C44.9</li>
+</ul></li>
+<li><strong>Multimorbidity accumulation</strong></li>
+<li><strong>Multiple hierarchy overrides in a single patient</strong></li>
+</ul>
 <div class="cell">
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
+<caption>Quan 2011 Article Validation</caption>
 <colgroup>
-<col style="width: 13%">
-<col style="width: 60%">
-<col style="width: 25%">
+<col style="width: 1%">
+<col style="width: 50%">
+<col style="width: 22%">
+<col style="width: 2%">
+<col style="width: 18%">
+<col style="width: 3%">
+<col style="width: 0%">
 </colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: left;">patient_id</th>
-<th style="text-align: left;">comorbidities_present</th>
-<th style="text-align: right;">total_charlson_score</th>
+<th style="text-align: left;">pt_diags</th>
+<th style="text-align: left;">expected_comorbidities</th>
+<th style="text-align: right;">expected_score</th>
+<th style="text-align: left;">calculated_comorbidities</th>
+<th style="text-align: right;">calculated_score</th>
+<th style="text-align: left;">pass</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">PT_001</td>
-<td style="text-align: left;">Diabetes without chronic complication</td>
+<td style="text-align: left;">R509 (Fever, unspecified)</td>
+<td style="text-align: left;">None</td>
 <td style="text-align: right;">0</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">TRUE</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">PT_002</td>
-<td style="text-align: left;">Moderate or severe liver disease</td>
-<td style="text-align: right;">4</td>
+<td style="text-align: left;">E119 (Type 2 diabetes without complications); E10321 (Type 1 diabetes with diabetic neuropathy)</td>
+<td style="text-align: left;">Diabetes with chronic complication [1]</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">Diabetes with chronic complication</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">TRUE</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">PT_003</td>
-<td style="text-align: left;">Congestive heart failure; Metastatic solid tumor</td>
-<td style="text-align: right;">8</td>
+<td style="text-align: left;">K746 (Other and unspecified cirrhosis of liver); I8500 (Esophageal varices without bleeding)</td>
+<td style="text-align: left;">Moderate or severe liver disease [4]</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">Moderate or severe liver disease</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">TRUE</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">PT_004</td>
+<td style="text-align: left;">C341 (Primary malignant neoplasm of lung); C7801 (Secondary malignant neoplasm of lung)</td>
+<td style="text-align: left;">Metastatic solid tumor [6]</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: left;">Metastatic solid tumor</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: left;">TRUE</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">PT_005</td>
+<td style="text-align: left;">E119 (Type 2 diabetes without complications); E10321 (Type 1 diabetes with diabetic neuropathy); K746 (Other and unspecified cirrhosis of liver); I8500 (Esophageal varices without bleeding); C341 (Primary malignant neoplasm of lung); C7801 (Secondary malignant neoplasm of lung)</td>
+<td style="text-align: left;">Diabetes with chronic complication [1]; Metastatic solid tumor [6]; Moderate or severe liver disease [4] (1+6+4)</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: left;">Diabetes with chronic complication; Moderate or severe liver disease; Metastatic solid tumor</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: left;">TRUE</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">PT_006</td>
+<td style="text-align: left;">I219 (Acute myocardial infarction); I5022 (Chronic systolic heart failure); M0511 (Rheumatoid arthritis); B20 (HIV disease)</td>
+<td style="text-align: left;">AIDS/HIV [4]; Congestive heart failure [2]; Myocardial infarction [0]; Rheumatic disease [1] (4+2+0+1)</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: left;">AIDS/HIV; Congestive heart failure; Myocardial infarction; Rheumatic disease</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: left;">TRUE</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">PT_007</td>
+<td style="text-align: left;">E119 (Type 2 diabetes without complications); E11321 (Type 2 diabetes with diabetic neuropathy); C341 (Primary malignant neoplasm of lung); C7801 (Secondary malignant neoplasm of lung); I5022 (Chronic systolic heart failure); N185 (Chronic kidney disease stage 5)</td>
+<td style="text-align: left;">Congestive heart failure [2]; Diabetes with chronic complication [1]; Metastatic solid tumor [6]; Renal disease [1] (2+1+6+1)</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: left;">Congestive heart failure; Diabetes with chronic complication; Metastatic solid tumor; Renal disease</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: left;">TRUE</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">PT_008</td>
+<td style="text-align: left;">I8510 (Esophageal varices with bleeding)</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">TRUE</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">PT_009</td>
+<td style="text-align: left;">K761 (Chronic passive congestion of liver)</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">TRUE</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">PT_010</td>
+<td style="text-align: left;">C449 (Non-melanoma skin cancer)</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">None</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: left;">TRUE</td>
 </tr>
 </tbody>
 </table>
